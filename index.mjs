@@ -1,7 +1,7 @@
 // services/messageProcessor.js
 import { SQSClient, DeleteMessageCommand } from '@aws-sdk/client-sqs';
 import { getChampionGlobalStats }          from './riotService.js';
-import { saveChampionStats, closePools }   from './dbService.js';
+import dbService from './dbService.js';
 
 const {
   SQS_QUEUE_URL: QueueUrl,
@@ -44,17 +44,17 @@ export async function processMessage(msg) {
     );
     if (!stats) throw new Error('Champion not found');
 
-    await saveChampionStats(championName, { ...stats, status: 'ready' });
+      await dbService.saveChampionStats(championName, { ...stats, status: 'ready' });
     console.log('[Worker] ✓ saved', championName);
   } catch (err) {
     console.error('[Worker] ✗', championName, err.message);
-    await saveChampionStats(championName, {
+      await dbService.saveChampionStats(championName, {
       status:  'error',
       message: err.message,
     });
   } finally {
     await safeDelete(msg);   // borra SIEMPRE para no re-procesar
-    await closePools();      // cierra conexiones a la BD
+      await dbService.closePools();      // cierra conexiones a la BD
   }
 }
 
